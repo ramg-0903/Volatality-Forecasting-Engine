@@ -1,0 +1,86 @@
+name: vfro
+
+# Day 1 scaffold: storage + tracking only.
+# api, prefect, and dashboard services are added in weeks 3-4 as they are built.
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL: system of record.
+  # Hosts two logical databases on one server, mirroring the single free-tier
+  # RDS instance targeted in build-plan section 12.1:
+  #   ${POSTGRES_DB}  - application data (prices, features, predictions, drift)
+  #   ${MLFLOW_DB}    - MLflow experiment metadata and the model registry
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: vfro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Consumed by db/init/01_create_mlflow_db.sh on first initialisation only.
+      MLFLOW_DB: ${MLFLOW_DB}
+    ports:
+      # Host port is indirected so a local Postgres on 5432 does not collide.
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      # Named volume: survives `make down`, removed only by `make clean`.
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, against an empty data directory. Not the migration system;
+      # db/migrations/ (forward-only) owns the application schema.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # MLflow: tracking server, UI, and model registry.
+  # Built rather than pulled because the published image ships no Postgres
+  # driver. Backend store is Postgres (SQLite cannot back a real registry).
+  #
+  # --serve-artifacts proxies artifact upload/download through this server and
+  # hands clients `mlflow-artifacts:/` URIs, so switching the destination to
+  # s3:// in week 4 is a one-flag change with no client-side edits.
+  # ---------------------------------------------------------------------------
+  mlflow:
+    build:
+      context: ./docker/mlflow
+      args:
+        MLFLOW_VERSION: ${MLFLOW_VERSION:-2.22.0}
+    image: vfro-mlflow:${MLFLOW_VERSION:-2.22.0}
+    container_name: vfro-mlflow
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - mlflow
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      - --backend-store-uri=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${MLFLOW_DB}
+      - --serve-artifacts
+      - --artifacts-destination=/mlflow/artifacts
+    ports:
+      # Host default is 5001: macOS AirPlay Receiver binds 5000.
+      - "${MLFLOW_HOST_PORT:-5001}:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://localhost:5000/health")
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  pgdata:
+  mlflow_artifacts:

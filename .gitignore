@@ -1,0 +1,58 @@
+venv/
+docs/
+
+# Editor swap/backup files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Secrets (see .env.template for placeholders)
+.env
+.env.local
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+env/
+.python-version
+
+# Testing / typing / linting caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# MLflow local runs and artifacts (the tracking server owns these in Docker)
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Prefect
+.prefect/
+
+# Evidently / generated reports
+reports/
+
+# Raw or cached vendor market data must never be committed
+data/
+*.parquet
+*.duckdb
+
+# Terraform / AWS local state, if used in week 4
+.terraform/
+*.tfstate
+*.tfstate.*
