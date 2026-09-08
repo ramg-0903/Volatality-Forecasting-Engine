@@ -1,0 +1,33 @@
+# Equity universe for the volatility engine (build-plan section 4.2).
+#
+# Fixed and version-controlled: the universe is NEVER selected dynamically.
+# Changing this list is a modeling decision -- bump the feature_version and log
+# it in docs/decisions.md when you do.
+#
+# SCAFFOLD ONLY: these are placeholder names across a few sectors. The full
+# ~30-name list is filled on day 3, before the historical backfill. Each ticker
+# becomes a row in dim_ticker (ticker, company_name, sector, active).
+
+# Broad index ETF used as the market proxy / market factor.
+market_proxy: SPY
+
+# History target for the backfill (build-plan section 4.2): ~2010 to present,
+# deliberately spanning the 2020 volatility shock.
+history_start: "2010-01-01"
+
+# Grouped by sector so cross-sector coverage is easy to eyeball. Placeholder
+# names below -- replace with the full list on day 3.
+tickers:
+  technology:
+    - AAPL
+    - MSFT
+  financials:
+    - JPM
+  healthcare:
+    - JNJ
+  energy:
+    - XOM
+  consumer_staples:
+    - PG
+  utilities:
+    - NEE

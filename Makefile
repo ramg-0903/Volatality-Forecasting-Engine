@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -57,6 +57,12 @@ fmt:  ## Apply formatting and autofixable lint rules
 
 typecheck:  ## Run mypy over src/
 	mypy
+
+# -----------------------------------------------------------------------------
+# Database
+# -----------------------------------------------------------------------------
+migrate: .env  ## Apply forward-only SQL migrations to the application database (idempotent)
+	$(PYTHON) -m volatility_mlops.db.migrate
 
 # -----------------------------------------------------------------------------
 # Utilities

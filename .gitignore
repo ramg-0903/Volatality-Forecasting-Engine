@@ -56,3 +56,5 @@ data/
 .terraform/
 *.tfstate
 *.tfstate.*
+
+CLAUDE.md
