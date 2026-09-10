@@ -4,30 +4,65 @@
 # Changing this list is a modeling decision -- bump the feature_version and log
 # it in docs/decisions.md when you do.
 #
-# SCAFFOLD ONLY: these are placeholder names across a few sectors. The full
-# ~30-name list is filled on day 3, before the historical backfill. Each ticker
-# becomes a row in dim_ticker (ticker, company_name, sector, active).
+# ~30 large-cap US names spanning ten sectors, plus one broad index ETF as the
+# market proxy. Every name was already trading in 2010, so the historical
+# backfill (day 4) gets the full span, including the 2020 volatility shock.
+# Each ticker becomes a row in dim_ticker (ticker, company_name, sector, active).
+#
+# Known limitation, stated honestly (build-plan 4.2): choosing today's large
+# caps is survivorship bias -- companies that failed are silently excluded. The
+# distortion is modest for a volatility exercise but real, and documented here
+# rather than hidden.
 
 # Broad index ETF used as the market proxy / market factor.
-market_proxy: SPY
+market_proxy:
+  ticker: SPY
+  name: SPDR S&P 500 ETF Trust
+  sector: Market Proxy
 
-# History target for the backfill (build-plan section 4.2): ~2010 to present,
-# deliberately spanning the 2020 volatility shock.
+# History target for the backfill (build-plan section 4.2): ~2010 to present.
 history_start: "2010-01-01"
 
-# Grouped by sector so cross-sector coverage is easy to eyeball. Placeholder
-# names below -- replace with the full list on day 3.
+# Grouped by sector (the key is the dim_ticker.sector label); the value is the
+# dim_ticker.company_name. Cross-sector spread is deliberate so volatility
+# levels and regimes differ across the panel.
 tickers:
-  technology:
-    - AAPL
-    - MSFT
-  financials:
-    - JPM
-  healthcare:
-    - JNJ
-  energy:
-    - XOM
-  consumer_staples:
-    - PG
-  utilities:
-    - NEE
+  Technology:
+    AAPL: Apple Inc.
+    MSFT: Microsoft Corporation
+    NVDA: NVIDIA Corporation
+    ORCL: Oracle Corporation
+    CSCO: Cisco Systems Inc.
+  Communication Services:
+    GOOGL: Alphabet Inc.
+    DIS: The Walt Disney Company
+    VZ: Verizon Communications Inc.
+  Financials:
+    JPM: JPMorgan Chase & Co.
+    BAC: Bank of America Corporation
+    GS: The Goldman Sachs Group Inc.
+  Health Care:
+    JNJ: Johnson & Johnson
+    PFE: Pfizer Inc.
+    UNH: UnitedHealth Group Incorporated
+    MRK: Merck & Co. Inc.
+  Energy:
+    XOM: Exxon Mobil Corporation
+    CVX: Chevron Corporation
+    COP: ConocoPhillips
+  Consumer Staples:
+    PG: The Procter & Gamble Company
+    KO: The Coca-Cola Company
+    WMT: Walmart Inc.
+  Consumer Discretionary:
+    AMZN: Amazon.com Inc.
+    HD: The Home Depot Inc.
+    MCD: McDonald's Corporation
+  Industrials:
+    CAT: Caterpillar Inc.
+    HON: Honeywell International Inc.
+  Utilities:
+    NEE: NextEra Energy Inc.
+    DUK: Duke Energy Corporation
+  Materials:
+    NEM: Newmont Corporation

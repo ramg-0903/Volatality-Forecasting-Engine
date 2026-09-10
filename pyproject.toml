@@ -16,6 +16,9 @@ dependencies = [
   "pandas>=2.2",
   "numpy>=1.26",
   "pyarrow>=15.0",
+  # market-data source (free dev provider; swappable behind the provider
+  # interface in src/.../ingestion/base.py). See docs/decisions.md.
+  "yfinance>=0.2.40",
   # model + econometric baselines
   "scikit-learn>=1.5",
   "statsmodels>=0.14",
@@ -108,7 +111,10 @@ convention = "google"
 # mypy
 # -----------------------------------------------------------------------------
 [tool.mypy]
-python_version = "3.11"
+# Type-check against the actual dev interpreter (3.12): numpy 2.x stubs use the
+# 3.12-only `type` statement. Source stays 3.11-compatible, enforced by ruff's
+# target-version = "py311" plus the pyupgrade (UP) rules.
+python_version = "3.12"
 files = ["src"]
 warn_unused_configs = true
 warn_redundant_casts = true
@@ -117,5 +123,5 @@ disallow_untyped_defs = true
 no_implicit_optional = true
 
 [[tool.mypy.overrides]]
-module = ["arch.*", "evidently.*", "mlflow.*", "statsmodels.*", "prefect.*"]
+module = ["arch.*", "evidently.*", "mlflow.*", "statsmodels.*", "prefect.*", "yfinance.*"]
 ignore_missing_imports = true

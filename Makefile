@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -63,6 +63,12 @@ typecheck:  ## Run mypy over src/
 # -----------------------------------------------------------------------------
 migrate: .env  ## Apply forward-only SQL migrations to the application database (idempotent)
 	$(PYTHON) -m volatility_mlops.db.migrate
+
+seed: .env  ## Seed dim_ticker from config/universe.yml (idempotent)
+	$(PYTHON) -m volatility_mlops.ingestion.universe
+
+ingest: .env  ## Ingest OHLCV over a date range, e.g. make ingest START=2024-01-01 END=2024-03-01
+	$(PYTHON) -m volatility_mlops.ingestion.ohlcv --start $(START) --end $(END)
 
 # -----------------------------------------------------------------------------
 # Utilities
