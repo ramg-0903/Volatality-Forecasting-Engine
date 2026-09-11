@@ -53,6 +53,11 @@ def _clean_fixture_rows(engine):
             text("DELETE FROM raw_macro WHERE series_id = ANY(:ids)"),
             {"ids": FIXTURE_SERIES},
         )
+        # Keep the audit log free of test runs: only real ingestions remain.
+        conn.execute(
+            text("DELETE FROM ingestion_runs WHERE source = :source"),
+            {"source": FixtureMacroProvider.name},
+        )
 
 
 def _count_rows(engine) -> int:

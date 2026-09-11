@@ -64,6 +64,11 @@ def _clean_fixture_rows(engine):
             text("DELETE FROM dim_ticker WHERE ticker = ANY(:tickers)"),
             {"tickers": FIXTURE_TICKERS},
         )
+        # Keep the audit log free of test runs: only real ingestions remain.
+        conn.execute(
+            text("DELETE FROM ingestion_runs WHERE source = :source"),
+            {"source": FixtureProvider.name},
+        )
 
 
 def _count_rows(engine) -> int:
