@@ -88,3 +88,62 @@ def normalize_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
     out = out.dropna(subset=["adj_close"])
     out = out.drop_duplicates(subset=["ticker", "trade_date"], keep="last")
     return out.sort_values(["ticker", "trade_date"]).reset_index(drop=True)
+
+
+#: Canonical column order every macro provider must return, matching ``raw_macro``.
+MACRO_COLUMNS: list[str] = ["series_id", "obs_date", "value"]
+
+
+class MacroDataProvider(ABC):
+    """A source of macro time series (e.g. VIX, Treasury yields).
+
+    Concrete providers set :attr:`name` (recorded in ``ingestion_runs``) and
+    implement :meth:`fetch_macro`.
+    """
+
+    name: str = "unknown"
+
+    @abstractmethod
+    def fetch_macro(self, series_ids: list[str], start: date, end: date) -> pd.DataFrame:
+        """Fetch macro observations for ``series_ids`` over ``[start, end]``.
+
+        Args:
+            series_ids: Provider series codes (e.g. ``VIXCLS``, ``DGS10``).
+            start: First observation date to include (inclusive).
+            end: Last observation date to include (inclusive).
+
+        Returns:
+            A DataFrame conforming to :data:`MACRO_COLUMNS`. Implementations
+            should return already-normalized data (see :func:`normalize_macro`).
+        """
+        raise NotImplementedError
+
+
+def normalize_macro(df: pd.DataFrame) -> pd.DataFrame:
+    """Coerce a raw macro frame to the canonical contract.
+
+    Guarantees exactly :data:`MACRO_COLUMNS`, a python ``date`` ``obs_date``, a
+    numeric ``value``, rows sorted by ``(series_id, obs_date)``, no duplicate
+    natural keys (last write wins), and no rows whose ``value`` is missing. FRED
+    encodes missing observations as ``"."``; those coerce to NaN and are dropped.
+
+    Args:
+        df: Provider output containing at least the canonical columns.
+
+    Returns:
+        A new normalized DataFrame; the input is not mutated.
+
+    Raises:
+        ValueError: If any canonical column is absent.
+    """
+    missing = set(MACRO_COLUMNS) - set(df.columns)
+    if missing:
+        raise ValueError(f"macro frame is missing columns: {sorted(missing)}")
+
+    out = df.loc[:, MACRO_COLUMNS].copy()
+    out["obs_date"] = pd.to_datetime(out["obs_date"]).dt.date
+    out["value"] = pd.to_numeric(out["value"], errors="coerce")
+
+    out = out.dropna(subset=["value"])
+    out = out.drop_duplicates(subset=["series_id", "obs_date"], keep="last")
+    return out.sort_values(["series_id", "obs_date"]).reset_index(drop=True)

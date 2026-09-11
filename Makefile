@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -69,6 +69,12 @@ seed: .env  ## Seed dim_ticker from config/universe.yml (idempotent)
 
 ingest: .env  ## Ingest OHLCV over a date range, e.g. make ingest START=2024-01-01 END=2024-03-01
 	$(PYTHON) -m volatility_mlops.ingestion.ohlcv --start $(START) --end $(END)
+
+ingest-macro: .env  ## Ingest FRED macro series (defaults to full history through today)
+	$(PYTHON) -m volatility_mlops.ingestion.macro
+
+backfill: .env  ## Full historical backfill of OHLCV + macro (chunked, idempotent, resumable)
+	$(PYTHON) -m volatility_mlops.ingestion.backfill
 
 # -----------------------------------------------------------------------------
 # Utilities

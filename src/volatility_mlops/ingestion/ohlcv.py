@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
-from dataclasses import dataclass
 from datetime import date
 
 import pandas as pd
@@ -24,6 +23,7 @@ from sqlalchemy.engine import Engine
 from volatility_mlops.db.engine import get_engine
 from volatility_mlops.ingestion.base import MarketDataProvider, normalize_ohlcv
 from volatility_mlops.ingestion.providers import YFinanceProvider
+from volatility_mlops.ingestion.runlog import IngestResult, finish_run, start_run
 from volatility_mlops.ingestion.universe import load_universe, seed_dim_ticker
 
 _UPSERT_OHLCV = text(
@@ -43,15 +43,6 @@ _UPSERT_OHLCV = text(
         ingested_at = now()
     """
 )
-
-
-@dataclass(frozen=True)
-class IngestResult:
-    """Outcome of one ingestion run."""
-
-    run_id: int
-    rows_written: int
-    status: str
 
 
 def _build_records(frame: pd.DataFrame, source: str) -> list[dict[str, object]]:
@@ -95,51 +86,6 @@ def upsert_ohlcv(engine: Engine, frame: pd.DataFrame, source: str) -> int:
     return len(records)
 
 
-def _start_run(engine: Engine, source: str, start: date, end: date) -> int:
-    """Insert a ``running`` ingestion_runs row and return its id."""
-    with engine.begin() as conn:
-        row = conn.execute(
-            text(
-                """
-                INSERT INTO ingestion_runs (source, date_start, date_end, status)
-                VALUES (:source, :date_start, :date_end, 'running')
-                RETURNING run_id
-                """
-            ),
-            {"source": source, "date_start": start, "date_end": end},
-        ).one()
-    return int(row.run_id)
-
-
-def _finish_run(
-    engine: Engine,
-    run_id: int,
-    status: str,
-    rows_written: int | None = None,
-    error: str | None = None,
-) -> None:
-    """Mark an ingestion_runs row terminal (``success`` or ``failed``)."""
-    with engine.begin() as conn:
-        conn.execute(
-            text(
-                """
-                UPDATE ingestion_runs
-                   SET status = :status,
-                       rows_written = :rows_written,
-                       error_message = :error,
-                       finished_at = now()
-                 WHERE run_id = :run_id
-                """
-            ),
-            {
-                "status": status,
-                "rows_written": rows_written,
-                "error": error,
-                "run_id": run_id,
-            },
-        )
-
-
 def ingest_ohlcv(
     engine: Engine,
     provider: MarketDataProvider,
@@ -166,14 +112,14 @@ def ingest_ohlcv(
     Raises:
         Exception: Re-raised after the run is marked ``failed``.
     """
-    run_id = _start_run(engine, provider.name, start, end)
+    run_id = start_run(engine, provider.name, start, end)
     try:
         frame = normalize_ohlcv(provider.fetch_ohlcv(list(tickers), start, end))
         rows = upsert_ohlcv(engine, frame, source=provider.name)
     except Exception as exc:  # noqa: BLE001 -- record the failure, then re-raise
-        _finish_run(engine, run_id, "failed", error=str(exc))
+        finish_run(engine, run_id, "failed", error=str(exc))
         raise
-    _finish_run(engine, run_id, "success", rows_written=rows)
+    finish_run(engine, run_id, "success", rows_written=rows)
     return IngestResult(run_id=run_id, rows_written=rows, status="success")
 
 

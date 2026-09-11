@@ -39,7 +39,11 @@ def engine():
 
 @pytest.fixture(autouse=True)
 def _clean_fixture_rows(engine):
-    """Ensure the fixture tickers exist and start with no price rows."""
+    """Ensure the fixture tickers exist and start with no price rows.
+
+    Cleans up on teardown too, so the shared dev database is never left with
+    fake tickers that would pollute later quality checks.
+    """
     upsert_tickers(
         engine,
         [TickerSpec(t, f"Fake {t}", "Test") for t in FIXTURE_TICKERS],
@@ -50,6 +54,16 @@ def _clean_fixture_rows(engine):
             {"tickers": FIXTURE_TICKERS},
         )
     yield
+    with engine.begin() as conn:
+        # raw_ohlcv first: it references dim_ticker.
+        conn.execute(
+            text("DELETE FROM raw_ohlcv WHERE ticker = ANY(:tickers)"),
+            {"tickers": FIXTURE_TICKERS},
+        )
+        conn.execute(
+            text("DELETE FROM dim_ticker WHERE ticker = ANY(:tickers)"),
+            {"tickers": FIXTURE_TICKERS},
+        )
 
 
 def _count_rows(engine) -> int:

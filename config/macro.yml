@@ -1,0 +1,8 @@
+# Macro series pulled from FRED (build-plan section 4.1), keyed by FRED series id.
+# Stored in raw_macro as (series_id, obs_date, value). The names are documentation
+# only -- raw_macro has no name column. Fetched from FRED's public fredgraph.csv
+# endpoint, which needs no API key.
+series:
+  VIXCLS: CBOE Volatility Index (VIX), daily close
+  DGS10: 10-Year Treasury constant-maturity yield (percent)
+  DGS3MO: 3-Month Treasury bill, secondary market rate (percent)
