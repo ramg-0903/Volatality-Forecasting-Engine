@@ -1,0 +1,32 @@
+# Data quality gate configuration (build-plan section 4.5).
+#
+# severity:
+#   error -> a failed check aborts the pipeline and is meant to raise an alert.
+#   warn  -> a failed check is recorded in data_quality_results but does NOT abort;
+#            used for softer flags that can be legitimately extreme.
+#
+# The market-proxy ticker defines the expected trading calendar: every date it
+# traded is an expected trading day, and every active ticker must have a row on
+# those dates.
+calendar_ticker: SPY
+
+checks:
+  completeness:
+    severity: error
+  non_null_critical:
+    severity: error
+  positivity:
+    severity: error
+  ohlc_consistency:
+    severity: error
+  duplicate_keys:
+    severity: error
+  return_sanity:
+    severity: warn
+    max_abs_log_return: 0.5   # a >~50% daily log move flags an unhandled split
+  staleness:
+    severity: warn
+    max_lag_days: 5           # calendar days between today and the latest trade date
+  volatility_floor:
+    severity: warn
+    window: 21                # trading days; zero realized vol over a full window = frozen feed

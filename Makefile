@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality notebook db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -75,6 +75,15 @@ ingest-macro: .env  ## Ingest FRED macro series (defaults to full history throug
 
 backfill: .env  ## Full historical backfill of OHLCV + macro (chunked, idempotent, resumable)
 	$(PYTHON) -m volatility_mlops.ingestion.backfill
+
+quality: .env  ## Run the data quality gate over all data (exits non-zero on error-severity failure)
+	$(PYTHON) -m volatility_mlops.quality.runner
+
+# -----------------------------------------------------------------------------
+# Notebooks
+# -----------------------------------------------------------------------------
+notebook: .env  ## Launch JupyterLab for the learning notebooks (needs the [notebooks] extra)
+	jupyter lab --notebook-dir=notebooks
 
 # -----------------------------------------------------------------------------
 # Utilities
