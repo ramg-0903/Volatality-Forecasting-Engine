@@ -23,6 +23,8 @@ dependencies = [
   "scikit-learn>=1.5",
   "statsmodels>=0.14",
   "arch>=7.0",
+  # plotting: MLflow artifact plots (feature importance, predicted-vs-actual)
+  "matplotlib>=3.9",
   # storage
   "SQLAlchemy>=2.0",
   "psycopg2-binary>=2.9",
@@ -53,7 +55,7 @@ dev = [
 ]
 notebooks = [
   "jupyterlab>=4.2",
-  "matplotlib>=3.9",
+  # matplotlib is a core dependency (used for MLflow artifact plots too)
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -123,5 +125,5 @@ disallow_untyped_defs = true
 no_implicit_optional = true
 
 [[tool.mypy.overrides]]
-module = ["arch.*", "evidently.*", "mlflow.*", "statsmodels.*", "prefect.*", "yfinance.*"]
+module = ["arch.*", "evidently.*", "mlflow.*", "statsmodels.*", "prefect.*", "yfinance.*", "sklearn.*"]
 ignore_missing_imports = true

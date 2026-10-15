@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality notebook db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger notebook db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -78,6 +78,21 @@ backfill: .env  ## Full historical backfill of OHLCV + macro (chunked, idempoten
 
 quality: .env  ## Run the data quality gate over all data (exits non-zero on error-severity failure)
 	$(PYTHON) -m volatility_mlops.quality.runner
+
+features: .env  ## Build the features table from raw data (idempotent)
+	$(PYTHON) -m volatility_mlops.features.build
+
+data-dictionary: .env  ## Regenerate assets/feature_dictionary.md from the feature contract
+	$(PYTHON) -m volatility_mlops.features.dictionary
+
+# -----------------------------------------------------------------------------
+# Modeling
+# -----------------------------------------------------------------------------
+baselines: .env  ## Evaluate the baseline ladder walk-forward and log to MLflow
+	$(PYTHON) -m volatility_mlops.models.evaluate
+
+challenger: .env  ## Search + evaluate the challenger vs all baselines; write the comparison
+	$(PYTHON) -m volatility_mlops.models.challenger
 
 # -----------------------------------------------------------------------------
 # Notebooks

@@ -1,0 +1,12 @@
+# Walk-forward (rolling-origin) validation config (build-plan section 6.2).
+#
+# purge:   the 21-day label horizon. A training row's label covers the next 21
+#          trading days, so training dates within `purge` days of the test window
+#          would leak future information and are dropped.
+# embargo: an extra trading-day gap after the purge, for safety.
+# The gap between the last training date and the first test date is purge+embargo.
+n_splits: 5
+test_size: 63        # trading days per test window (~one quarter)
+purge: 21
+embargo: 5
+min_train_size: 252  # require at least ~1 year of training dates in the first fold

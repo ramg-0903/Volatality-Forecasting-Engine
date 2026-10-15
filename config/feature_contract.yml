@@ -1,0 +1,64 @@
+# Feature contract (build-plan section 5.2) -- the single source of truth for
+# which features exist. The feature build (Day 9) implements against it, the
+# promotion gate (Day 16) checks a challenger's input columns against it, and
+# features.feature_version stamps every row with the version that produced it.
+#
+# Bump feature_version on ANY change to the set or definitions below.
+#
+# Leakage rules (section 4.6) enforced by these definitions:
+#   - every feature uses only information available at the close of t,
+#   - entity_mean_log_rv is expanding-window (never full-sample),
+#   - no cross-sectional statistic computed over the full history.
+# All realized-vol features are annualized (x sqrt(252)) and taken in logs unless
+# noted; windows are in trading days.
+
+feature_version: v1
+
+features:
+  # --- HAR volatility ladder: the core signal -------------------------------
+  - {name: log_rv_1,   group: har_ladder, window: 1,   definition: "log annualized realized vol over the trailing 1 trading day"}
+  - {name: log_rv_5,   group: har_ladder, window: 5,   definition: "log annualized realized vol over the trailing 5 trading days"}
+  - {name: log_rv_21,  group: har_ladder, window: 21,  definition: "log annualized realized vol over the trailing 21 trading days"}
+  - {name: log_rv_63,  group: har_ladder, window: 63,  definition: "log annualized realized vol over the trailing 63 trading days"}
+  - {name: log_rv_126, group: har_ladder, window: 126, definition: "log annualized realized vol over the trailing 126 trading days"}
+
+  # --- Exponentially weighted volatility ------------------------------------
+  - {name: log_ewma_vol, group: ewma, definition: "log annualized EWMA volatility, RiskMetrics decay lambda=0.94"}
+
+  # --- Volatility term structure (mean-reversion signal) --------------------
+  - {name: rv_ratio_5_21,   group: term_structure, definition: "ratio of trailing 5d to 21d realized vol"}
+  - {name: rv_ratio_21_126, group: term_structure, definition: "ratio of trailing 21d to 126d realized vol"}
+
+  # --- Range-based estimator ------------------------------------------------
+  - {name: log_parkinson_21, group: range, window: 21, definition: "log annualized Parkinson high-low volatility over 21 days"}
+
+  # --- Return-based (encodes the leverage effect) ---------------------------
+  - {name: ret_1,     group: return_based, window: 1,  definition: "cumulative log return over the trailing 1 day"}
+  - {name: ret_5,     group: return_based, window: 5,  definition: "cumulative log return over the trailing 5 days"}
+  - {name: ret_21,    group: return_based, window: 21, definition: "cumulative log return over the trailing 21 days"}
+  - {name: abs_ret_1, group: return_based, window: 1,  definition: "absolute value of the most recent daily log return"}
+
+  # --- Downside asymmetry ---------------------------------------------------
+  - {name: log_downside_vol_21, group: downside, window: 21, definition: "log annualized semi-volatility from negative returns only, 21 days"}
+
+  # --- Volume ---------------------------------------------------------------
+  - {name: volume_z_21, group: volume, window: 21, definition: "volume z-score vs its trailing 21-day mean and std"}
+
+  # --- Market-wide ----------------------------------------------------------
+  - {name: log_vix,   group: market_wide, definition: "log of the VIX close (implied 30-day volatility)"}
+  - {name: vix_chg_5, group: market_wide, window: 5, definition: "5-day change in the VIX level"}
+  - {name: vrp_21,    group: market_wide, window: 21, definition: "variance risk premium proxy: VIX/100 minus own 21d realized vol"}
+
+  # --- Cross-sectional context ----------------------------------------------
+  - {name: log_index_rv_21,      group: index_context, window: 21, definition: "log annualized 21d realized vol of the index ETF (SPY)"}
+  - {name: rv_ratio_to_index_21, group: index_context, window: 21, definition: "ticker 21d realized vol divided by index 21d realized vol"}
+
+  # --- Macro regime ---------------------------------------------------------
+  - {name: term_spread, group: macro, definition: "10-year minus 3-month Treasury yield (DGS10 - DGS3MO)"}
+
+  # --- Entity encoding (must be expanding-window to avoid leakage) ----------
+  - {name: entity_mean_log_rv, group: entity, definition: "expanding-window mean of the ticker's log 21d realized vol"}
+
+  # --- Calendar (weak but cheap; optional) ----------------------------------
+  - {name: dow,   group: calendar, optional: true, definition: "day of week, 0=Monday"}
+  - {name: month, group: calendar, optional: true, definition: "calendar month, 1-12"}
