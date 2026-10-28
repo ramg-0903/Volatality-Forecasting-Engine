@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger notebook db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register notebook db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -93,6 +93,9 @@ baselines: .env  ## Evaluate the baseline ladder walk-forward and log to MLflow
 
 challenger: .env  ## Search + evaluate the challenger vs all baselines; write the comparison
 	$(PYTHON) -m volatility_mlops.models.challenger
+
+register: .env  ## Train, register, and promote the production model to the MLflow registry
+	$(PYTHON) -m volatility_mlops.models.registry
 
 # -----------------------------------------------------------------------------
 # Notebooks

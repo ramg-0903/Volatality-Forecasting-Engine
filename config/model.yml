@@ -1,0 +1,12 @@
+# Production model configuration (build-plan section 7.4).
+# registered_model_name is the registry entry the serving layer loads by stage.
+# best_params are the Day-14 walk-forward search winner; re-running
+# `make challenger` refreshes which config wins.
+registered_model_name: volatility-challenger
+
+best_params:
+  learning_rate: 0.05
+  max_iter: 300
+  max_leaf_nodes: 31
+  min_samples_leaf: 50
+  l2_regularization: 0.0

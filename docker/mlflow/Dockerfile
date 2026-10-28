@@ -10,7 +10,10 @@ ARG MLFLOW_VERSION=2.22.0
 RUN pip install --no-cache-dir \
       "mlflow==${MLFLOW_VERSION}" \
       "psycopg2-binary>=2.9" \
-      "boto3>=1.34"
+      "boto3>=1.34" \
+      `# Pin below 2.1: MLflow 2.22 imports FallbackAsyncAdaptedQueuePool, which` \
+      `# SQLAlchemy 2.1 removed -> the server crash-loops without this pin.` \
+      "SQLAlchemy>=2.0,<2.1"
 
 # Artifact root. Backed by a named volume locally; repointed at s3:// in week 4.
 RUN useradd --create-home --uid 1000 mlflow \
