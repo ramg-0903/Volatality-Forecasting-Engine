@@ -1,0 +1,9 @@
+# Promotion gate thresholds (build-plan section 7.5).
+# ALL criteria must pass for a challenger to be promoted to Production; any failure
+# leaves the incumbent champion in place and writes the reason to promotion_log.
+primary_margin: 0.02      # challenger QLIKE must beat champion by >= 2% relative (last 2 folds)
+secondary_margin: 0.01    # challenger MAE may worsen by at most 1% relative
+stability_window: 4       # inspect the most recent 4 folds
+max_losses: 1             # challenger may lose to champion on at most 1 of them
+calibration_low: 0.8      # Mincer-Zarnowitz slope must fall within [low, high]
+calibration_high: 1.2
