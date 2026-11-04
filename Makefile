@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register notebook db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register serve notebook db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -96,6 +96,12 @@ challenger: .env  ## Search + evaluate the challenger vs all baselines; write th
 
 register: .env  ## Train, register, and promote the production model to the MLflow registry
 	$(PYTHON) -m volatility_mlops.models.registry
+
+# -----------------------------------------------------------------------------
+# Serving
+# -----------------------------------------------------------------------------
+serve: .env  ## Run the Flask serving API (health, predict, history) on API_PORT (default 8000)
+	$(PYTHON) -m volatility_mlops.api.app
 
 # -----------------------------------------------------------------------------
 # Notebooks
