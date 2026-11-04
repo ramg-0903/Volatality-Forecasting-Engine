@@ -24,6 +24,7 @@ from volatility_mlops.api.errors import register_error_handlers
 from volatility_mlops.api.model_holder import ModelHolder
 from volatility_mlops.api.routes.health import bp as health_bp
 from volatility_mlops.api.routes.history import bp as history_bp
+from volatility_mlops.api.routes.portfolio import bp as portfolio_bp
 from volatility_mlops.api.routes.predict import bp as predict_bp
 from volatility_mlops.db.engine import get_engine
 
@@ -74,7 +75,7 @@ def create_app(engine: Engine | None = None, model_holder: ModelHolder | None = 
 
     register_error_handlers(app)
     _register_request_logging(app)
-    for blueprint in (health_bp, predict_bp, history_bp):
+    for blueprint in (health_bp, predict_bp, history_bp, portfolio_bp):
         app.register_blueprint(blueprint)
     return app
 

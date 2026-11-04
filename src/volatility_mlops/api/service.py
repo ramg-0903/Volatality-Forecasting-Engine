@@ -9,7 +9,7 @@ requested date) are raised as :class:`ApiError` so they become structured respon
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -23,6 +23,18 @@ from volatility_mlops.features.contract import load_feature_contract
 
 # Cap on /history rows so one noisy ticker cannot return an unbounded payload.
 MAX_HISTORY_ROWS = 2000
+
+
+def parse_as_of_date(value: Any) -> date | None:
+    """Parse an optional ISO ``YYYY-MM-DD`` as-of date, or raise a 400 ApiError."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ApiError(400, "'as_of_date' must be an ISO date string (YYYY-MM-DD).")
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ApiError(400, "'as_of_date' must be a valid date (YYYY-MM-DD).") from exc
 
 
 def known_tickers(engine: Engine) -> set[str]:

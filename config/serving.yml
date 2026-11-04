@@ -1,0 +1,5 @@
+# Serving-layer parameters (build-plan section 8).
+# Used by the /portfolio/risk endpoint (Day 18) to build the covariance matrix.
+correlation_window_days: 126   # trailing daily returns used to estimate correlations (~6 months)
+min_observations: 60           # minimum aligned return rows required for a correlation estimate
+weight_sum_tolerance: 1.0e-6   # portfolio weights must sum to 1 within this absolute tolerance
