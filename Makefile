@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register serve notebook db-shell mlflow-open clean
+.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register serve flow-daily notebook db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -102,6 +102,12 @@ register: .env  ## Train, register, and promote the production model to the MLfl
 # -----------------------------------------------------------------------------
 serve: .env  ## Run the Flask serving API (health, predict, history) on API_PORT (default 8000)
 	$(PYTHON) -m volatility_mlops.api.app
+
+# -----------------------------------------------------------------------------
+# Orchestration
+# -----------------------------------------------------------------------------
+flow-daily: .env  ## Run the daily inference flow once (ingest->quality->features->predict), e.g. make flow-daily DATE=2026-09-09
+	$(PYTHON) -m volatility_mlops.flows.daily $(if $(DATE),--date $(DATE),)
 
 # -----------------------------------------------------------------------------
 # Notebooks

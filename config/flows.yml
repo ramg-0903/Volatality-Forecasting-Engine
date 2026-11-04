@@ -1,0 +1,5 @@
+# Orchestration parameters (build-plan section 9).
+# Used by the Prefect daily inference flow (Day 19).
+ingest_lookback_days: 5        # re-ingest this many business days each run (overlap catches late corrections)
+prediction_horizon_days: 21    # forecast horizon; resolves_on = as_of + this many business days
+schedule_cron: "0 22 * * 1-5"  # weekday evenings 22:00 (worker stood up on Day 26)
