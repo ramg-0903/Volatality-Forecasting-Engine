@@ -187,7 +187,7 @@ def prediction_history(engine: Engine, ticker: str, limit: int = 500) -> list[di
     df = pd.read_sql(
         query,
         engine,
-        params={"ticker": ticker, "limit": limit},  # type: ignore[arg-type]
+        params={"ticker": ticker, "limit": limit},
         parse_dates=["as_of_date", "resolves_on"],
     )
     return [
