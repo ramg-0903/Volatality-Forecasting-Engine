@@ -22,6 +22,7 @@ install:  ## Install the package and dev tooling into the active environment
 	pre-commit install
 
 lock:  ## Recompile the hash-pinned lockfiles (requirements*.txt) from pyproject.toml
+	$(PYTHON) -m pip install --quiet pip-tools  # lock-gen tooling; intentionally not a project dependency
 	$(PYTHON) -m piptools compile --generate-hashes --output-file=requirements.txt pyproject.toml
 	$(PYTHON) -m piptools compile --generate-hashes --extra=dev --output-file=requirements-dev.txt pyproject.toml
 
