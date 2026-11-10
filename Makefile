@@ -2,7 +2,7 @@ COMPOSE := docker compose
 PYTHON   := python3
 
 .DEFAULT_GOAL := help
-.PHONY: help env install up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register serve flow-daily notebook db-shell mlflow-open clean
+.PHONY: help env install lock up down logs ps restart test lint fmt typecheck migrate seed ingest ingest-macro backfill quality features data-dictionary baselines challenger register serve flow-daily flow-weekly notebook db-shell mlflow-open clean
 
 help:  ## Show available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -20,6 +20,10 @@ env: .env  ## Create .env from the template if it does not exist
 install:  ## Install the package and dev tooling into the active environment
 	$(PYTHON) -m pip install -e ".[dev]"
 	pre-commit install
+
+lock:  ## Recompile the hash-pinned lockfiles (requirements*.txt) from pyproject.toml
+	$(PYTHON) -m piptools compile --generate-hashes --output-file=requirements.txt pyproject.toml
+	$(PYTHON) -m piptools compile --generate-hashes --extra=dev --output-file=requirements-dev.txt pyproject.toml
 
 # -----------------------------------------------------------------------------
 # Stack
@@ -108,6 +112,9 @@ serve: .env  ## Run the Flask serving API (health, predict, history) on API_PORT
 # -----------------------------------------------------------------------------
 flow-daily: .env  ## Run the daily inference flow once (ingest->quality->features->predict), e.g. make flow-daily DATE=2026-09-09
 	$(PYTHON) -m volatility_mlops.flows.daily $(if $(DATE),--date $(DATE),)
+
+flow-weekly: .env  ## Run the weekly retrain flow once (rebuild->guardrails->train->gate->promote/reject)
+	$(PYTHON) -m volatility_mlops.flows.weekly $(if $(DATE),--date $(DATE),)
 
 # -----------------------------------------------------------------------------
 # Notebooks

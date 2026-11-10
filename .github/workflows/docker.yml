@@ -1,0 +1,55 @@
+name: docker
+
+# Build the application image and smoke-test it. The container serves the Flask API
+# with no database or MLflow registry reachable, so /health reports a *degraded*
+# service (HTTP 503, model not loaded) -- the smoke test asserts the endpoint responds
+# with well-formed JSON, i.e. the service boots and serves. Pushing the image to a
+# registry and wiring it into docker-compose are deferred to the deploy day (Day 26).
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t vfro-app:ci .
+
+      - name: Smoke test /health
+        run: |
+          # A bogus DATABASE_URL satisfies get_engine() (SQLAlchemy connects lazily;
+          # /health never touches the database). No MLflow => model not loaded.
+          docker run -d --name vfro-smoke -p 8000:8000 \
+            -e DATABASE_URL="postgresql+psycopg2://u:p@127.0.0.1:5432/x" \
+            vfro-app:ci
+
+          echo "waiting for the API to come up..."
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /tmp/health.json -w '%{http_code}' http://localhost:8000/health || true)
+            if [ "$code" = "200" ] || [ "$code" = "503" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          echo "HTTP $code"
+          cat /tmp/health.json || true
+          # 503 (degraded, no model) or 200 (model loaded) both mean "serving".
+          test "$code" = "200" -o "$code" = "503"
+          # The body must be the structured health payload.
+          python -c "import json; d=json.load(open('/tmp/health.json')); assert 'status' in d and 'loaded' in d, d; print('health JSON ok:', d)"
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs vfro-smoke || true
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f vfro-smoke || true

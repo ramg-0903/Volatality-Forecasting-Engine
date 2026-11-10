@@ -59,20 +59,24 @@ FLOWS_CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "flows.yml"
 
 @dataclass(frozen=True)
 class FlowsConfig:
-    """Daily-flow parameters from ``config/flows.yml``."""
+    """Orchestration parameters from ``config/flows.yml`` (daily and weekly flows)."""
 
     ingest_lookback_days: int
     prediction_horizon_days: int
     schedule_cron: str
+    retrain_cron: str = "0 2 * * 6"
+    row_count_drop_tolerance: float = 0.02
 
 
 def load_flows_config(path: Path = FLOWS_CONFIG_PATH) -> FlowsConfig:
-    """Load orchestration parameters from ``flows.yml``."""
+    """Load orchestration parameters from ``flows.yml`` (weekly keys are optional)."""
     data = yaml.safe_load(path.read_text())
     return FlowsConfig(
         ingest_lookback_days=int(data["ingest_lookback_days"]),
         prediction_horizon_days=int(data["prediction_horizon_days"]),
         schedule_cron=str(data["schedule_cron"]),
+        retrain_cron=str(data.get("retrain_cron", "0 2 * * 6")),
+        row_count_drop_tolerance=float(data.get("row_count_drop_tolerance", 0.02)),
     )
 
 

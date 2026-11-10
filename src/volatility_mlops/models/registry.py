@@ -101,8 +101,9 @@ def register_pipeline(
     example: pd.DataFrame,
     model_name: str,
     params: dict[str, Any],
+    stage: str = "Production",
 ) -> int:
-    """Log a fitted pipeline as a pyfunc model, register it, and promote to Production.
+    """Log a fitted pipeline as a pyfunc model, register it, and move it to ``stage``.
 
     Args:
         pipeline: A fitted log-target pipeline.
@@ -110,9 +111,12 @@ def register_pipeline(
         example: A few rows of features for the signature/input example.
         model_name: Registered model name.
         params: Parameters to log alongside the model.
+        stage: Registry stage to transition the new version into. Defaults to
+            ``"Production"`` (the manual Day-15 path); the weekly retrain flow passes
+            ``"Staging"`` so the promotion gate decides whether it reaches Production.
 
     Returns:
-        The registered version number now in ``Production``.
+        The registered version number now in ``stage``.
     """
     configure_mlflow()
     sample = example[feature_cols]
@@ -136,8 +140,10 @@ def register_pipeline(
 
     client = MlflowClient()
     version = _latest_version(client, model_name)
+    # Archive existing versions only when taking over Production; a new Staging
+    # candidate must not disturb the live Production model.
     client.transition_model_version_stage(
-        model_name, version, "Production", archive_existing_versions=True
+        model_name, version, stage, archive_existing_versions=(stage == "Production")
     )
     client.set_model_version_tag(model_name, version, "git_sha", git_sha())
     return int(version)

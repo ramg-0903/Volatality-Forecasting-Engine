@@ -12,6 +12,7 @@ an ops call) never hands out a half-loaded model.
 
 from __future__ import annotations
 
+import logging
 import threading
 from datetime import UTC, datetime
 from typing import Any
@@ -19,6 +20,8 @@ from typing import Any
 from mlflow.pyfunc import PyFuncModel
 
 from volatility_mlops.models.registry import get_production_info, load_production_model
+
+log = logging.getLogger(__name__)
 
 
 class ModelHolder:
@@ -40,20 +43,24 @@ class ModelHolder:
     def load(self) -> None:
         """(Re)load the current Production model from the registry by stage.
 
-        If no version is in the ``Production`` stage, the holder is left empty
-        (``status()["loaded"]`` is ``False``) rather than raising, so the service can
-        still start and report a degraded ``/health``.
+        If no version is in the ``Production`` stage -- or the registry is
+        unreachable or has no such registered model (e.g. a fresh container with no
+        tracking server) -- the holder is left empty (``status()["loaded"]`` is
+        ``False``) rather than raising, so the service can still start and report a
+        degraded ``/health``.
         """
         with self._lock:
-            info = get_production_info(self._model_name)
-            if not info:
-                self._model = None
-                self._info = {}
-                self._loaded_at = None
-                return
-            self._model = load_production_model(self._model_name)
+            try:
+                info = get_production_info(self._model_name)
+                model = load_production_model(self._model_name) if info else None
+            except Exception:  # noqa: BLE001 -- any registry failure => degraded, not a crash
+                log.warning(
+                    "model registry unavailable; starting with no model loaded", exc_info=True
+                )
+                info, model = {}, None
+            self._model = model
             self._info = info
-            self._loaded_at = datetime.now(UTC)
+            self._loaded_at = datetime.now(UTC) if model is not None else None
 
     def refresh(self) -> dict[str, Any]:
         """Reload from the registry and return the new :meth:`status`."""
